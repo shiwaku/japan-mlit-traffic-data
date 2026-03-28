@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JARTIC 交通量ビューワー</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <div id="map"></div>
+      <div id="panel">
+        <div id="panel-header">
+          <h1>JARTIC 交通量ビューワー</h1>
+          <div id="mode-tabs">
+            <button class="tab" data-mode="5m">5分間</button>
+            <button class="tab active" data-mode="1h">1時間</button>
+          </div>
+        </div>
+
+        <!-- 5分間モード -->
+        <div id="panel-5m" class="mode-panel hidden">
+          <div id="date-select-row">
+            <label>日付</label>
+            <select id="sel-year"></select>年
+            <select id="sel-month"></select>月
+            <select id="sel-day"></select>日
+          </div>
+          <div id="slider-row">
+            <span id="timecode-label-5m">--:--</span>
+            <input type="range" id="slider-5m" min="0" max="287" value="0" />
+          </div>
+          <div id="play-row">
+            <button id="btn-play-5m">▶ 再生</button>
+            <label>速度
+              <select id="sel-speed-5m">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="4" selected>4x</option>
+                <option value="8">8x</option>
+                <option value="12">12x</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- 1時間モード -->
+        <div id="panel-1h" class="mode-panel">
+          <div id="loading-row" class="hidden">
+            <span id="loading-label">データ読み込み中...</span>
+            <div id="loading-bar"><div id="loading-progress"></div></div>
+          </div>
+          <div id="slider-row-1h">
+            <span id="timecode-label-1h">----/--/-- --:--</span>
+            <input type="range" id="slider-1h" min="0" max="2183" value="0" />
+          </div>
+          <div id="play-row-1h">
+            <button id="btn-play-1h">▶ 再生</button>
+            <label>速度
+              <select id="sel-speed-1h">
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="4" selected>4x</option>
+                <option value="8">8x</option>
+                <option value="12">12x</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- 凡例 -->
+        <div id="direction-tabs">
+          <button class="dir-tab active" data-dir="up">上り</button>
+          <button class="dir-tab" data-dir="down">下り</button>
+        </div>
+        <div id="legend">
+          <div class="legend-title">交通量（台）</div>
+          <div class="legend-scale"></div>
+        </div>
+        <div id="status">観測点: 2,060ヶ所</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

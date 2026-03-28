@@ -1,0 +1,29 @@
+# 生CSVデータ（3.1GB、Actionsで毎回ダウンロード）
+data/
+
+# ログ
+download_jartic.log
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Node.js
+viewer/node_modules/
+viewer/dist/
+
+# 環境
+.env
+
+# ウェブ不要ファイル（QGIS・tippecanoe用のみ）
+docs/stations.mbtiles
+docs/stations.geojson
+
+# 1時間日別ファイル（data_1h_all.json.gz を使うため不要）
+docs/data_1h/
+
+# 参照プロジェクト
+viewer/city-plan-dm-viewer-main/
+
+# PMTilesの重複（docs/stations.pmtilesをmiddlewareで配信）
+viewer/public/stations.pmtiles
