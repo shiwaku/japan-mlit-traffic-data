@@ -247,3 +247,21 @@ input[type="range"] {
 .maplibregl-ctrl-attrib {
   font-size: 10px;
 }
+
+/* ── データ出典表記（docs/index.html 用フォールバックも同スタイル） */
+#attribution {
+  position: absolute;
+  bottom: 24px;
+  left: 8px;
+  font-size: 10px;
+  color: #333;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 2px 6px;
+  border-radius: 3px;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+#attribution a {
+  color: #1a73e8;
+}

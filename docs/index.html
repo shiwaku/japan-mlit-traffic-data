@@ -3,18 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JARTIC 交通量ビューワー</title>
+    <title>国土交通省 交通量ビューワー（JARTIC提供）</title>
     <script type="module" crossorigin src="/japan-jartic-traffic-data/assets/index-xOmVly71.js"></script>
     <link rel="modulepreload" crossorigin href="/japan-jartic-traffic-data/assets/maplibre-CEzeW31l.js">
     <link rel="modulepreload" crossorigin href="/japan-jartic-traffic-data/assets/pmtiles-D2IMUaje.js">
     <link rel="stylesheet" crossorigin href="/japan-jartic-traffic-data/assets/index-Dz4yTrF4.css">
+    <style>
+      #attribution {
+        position: absolute;
+        bottom: 24px;
+        left: 8px;
+        font-size: 10px;
+        color: #333;
+        background: rgba(255,255,255,0.75);
+        padding: 2px 6px;
+        border-radius: 3px;
+        z-index: 5;
+        pointer-events: auto;
+      }
+      #attribution a { color: #1a73e8; }
+    </style>
   </head>
   <body>
     <div id="app">
       <div id="map"></div>
       <div id="panel">
         <div id="panel-header">
-          <h1>JARTIC 交通量ビューワー</h1>
+          <h1>国土交通省 交通量ビューワー<br>（JARTIC提供）</h1>
           <div id="mode-tabs">
             <button class="tab" data-mode="5m">5分間</button>
             <button class="tab active" data-mode="1h">1時間</button>
@@ -83,5 +98,6 @@
         <div id="status">観測点: 2,060ヶ所</div>
       </div>
     </div>
+    <div id="attribution">出典：<a href="https://www.jartic-open-traffic.org/" target="_blank">国土交通省 JARTIC オープン交通データ</a>（参考値）</div>
   </body>
 </html>

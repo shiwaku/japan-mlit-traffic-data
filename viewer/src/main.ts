@@ -420,6 +420,9 @@ async function initMap() {
     center: [136.5, 36.5],
     zoom: 5,
     hash: true,
+    attributionControl: {
+      customAttribution: '出典：<a href="https://www.jartic-open-traffic.org/" target="_blank">国土交通省 JARTIC オープン交通データ</a>（参考値）',
+    },
   });
 
   map.addControl(new maplibregl.NavigationControl(), "top-right");
