@@ -175,7 +175,7 @@ tippecanoe のインストール: https://github.com/felt/tippecanoe
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::pmtiles-data/mlit/*",
+      "Resource": "arn:aws:s3:::pmtiles-data/mlit/traffic-data/*",
       "Condition": {
         "StringLike": {
           "aws:Referer": [
@@ -211,9 +211,9 @@ tippecanoe のインストール: https://github.com/felt/tippecanoe
 ### S3へのアップロード
 
 ```bash
-aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/data_5m/
-aws s3 cp docs/data_1h_all.json.gz s3://pmtiles-data/mlit/data_1h_all.json.gz
-aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/stations.pmtiles
+aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/traffic-data/data_5m/
+aws s3 cp docs/data_1h_all.json.gz s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
+aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/traffic-data/stations.pmtiles
 ```
 
 ## ビューワー設計方針（MapLibre GL JS）
