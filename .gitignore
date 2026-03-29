@@ -22,6 +22,11 @@ docs/stations.geojson
 # 1時間日別ファイル（data_1h_all.json.gz を使うため不要）
 docs/data_1h/
 
+# S3配信データ（GitHubには置かない）
+docs/stations.pmtiles
+docs/data_5m/
+docs/data_1h_all.json.gz
+
 # 参照プロジェクト
 viewer/city-plan-dm-viewer-main/
 

@@ -5,7 +5,7 @@ import fs from "fs";
 const docsDir = path.resolve(__dirname, "../docs");
 
 export default defineConfig(({ command }) => ({
-  base: command === "build" ? "/japan-jartic-traffic-data/" : "/",
+  base: command === "build" ? "/japan-mlit-traffic-data/" : "/",
   publicDir: "public",
   server: {
     port: 5173,

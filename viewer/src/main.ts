@@ -3,9 +3,10 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import * as pmtiles from "pmtiles";
 
 // ── 定数 ────────────────────────────────────────────────
-const BASE = import.meta.env.BASE_URL; // dev: "/", prod: "/japan-jartic-traffic-data/"
-const DATA_5M_BASE = `${BASE}data_5m/`;
-const DATA_1H_ALL = `${BASE}data_1h_all.json.gz`;
+const BASE = import.meta.env.BASE_URL; // dev: "/", prod: "/japan-mlit-traffic-data/"
+const S3_BASE = "https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/mlit/";
+const DATA_5M_BASE = `${S3_BASE}data_5m/`;
+const DATA_1H_ALL = `${S3_BASE}data_1h_all.json.gz`;
 const GSI_PALE_STYLE = `${BASE}pale.json`;
 
 // 5分データで利用可能な日付リスト（ビルド時に埋め込み or 動的取得）
@@ -431,7 +432,7 @@ async function initMap() {
 
     map.addSource("stations", {
       type: "vector",
-      url: `pmtiles://${location.origin}${import.meta.env.BASE_URL}stations.pmtiles`,
+      url: `pmtiles://${S3_BASE}stations.pmtiles`,
     });
 
     map.addLayer({

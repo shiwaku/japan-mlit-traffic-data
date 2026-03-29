@@ -1,4 +1,4 @@
-# japan-jartic-traffic-data
+# japan-mlit-traffic-data
 
 国土交通省が提供する [JARTIC オープン交通データ](https://www.jartic-open-traffic.org/) を一括取得するスクリプト。
 
@@ -159,6 +159,62 @@ tippecanoe のインストール: https://github.com/felt/tippecanoe
 ### 再実行・レジューム
 
 既存ファイルは自動でスキップされる。中断後の再実行でも途中から継続可能。
+
+## S3配信設定
+
+データファイルは `s3://pmtiles-data/mlit/` に格納し、GitHub Pagesからは除外しています。
+
+### バケットポリシー（Refererによるアクセス制限）
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowReferer",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::pmtiles-data/mlit/*",
+      "Condition": {
+        "StringLike": {
+          "aws:Referer": [
+            "https://shiwaku.github.io/*",
+            "http://localhost:*/*"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+### CORSポリシー
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": [
+      "https://shiwaku.github.io",
+      "http://localhost:5173"
+    ],
+    "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+> **注意:** Refererヘッダーは偽装可能なため、完全なアクセス制御にはなりません。悪意ある大量取得の抑止と、gitへのデータ非掲載が主な目的です。
+
+### S3へのアップロード
+
+```bash
+aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/data_5m/
+aws s3 cp docs/data_1h_all.json.gz s3://pmtiles-data/mlit/data_1h_all.json.gz
+aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/stations.pmtiles
+```
 
 ## ビューワー設計方針（MapLibre GL JS）
 

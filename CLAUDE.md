@@ -103,7 +103,7 @@ process_csv.py では両方のカラム名を `row.get("上り・小型交通量
 ## ファイル構成
 
 ```
-japan-jartic-traffic-data/
+japan-mlit-traffic-data/
 ├── CLAUDE.md
 ├── download_jartic.py      # 一括ダウンロードスクリプト
 ├── process_csv.py          # CSV → GeoJSON + 時刻別JSON + PMTiles生成
