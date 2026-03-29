@@ -105,27 +105,32 @@ process_csv.py では両方のカラム名を `row.get("上り・小型交通量
 ```
 japan-mlit-traffic-data/
 ├── CLAUDE.md
-├── download_jartic.py      # 一括ダウンロードスクリプト
-├── process_csv.py          # CSV → GeoJSON + 時刻別JSON + PMTiles生成
-├── download_jartic.log     # ダウンロードログ
-├── data/
-│   ├── shoshiki1/          # 様式1: 常設トラカン 5分間
-│   │   └── YYYYMMDD_HHMM.csv   # 2時間バッチ（境界固定）
-│   ├── shoshiki2/          # 様式2: 常設トラカン 1時間
-│   │   └── YYYYMMDD.csv        # 1日バッチ
-│   ├── shoshiki3/          # 様式3: CCTVトラカン 5分間
+├── .github/
+│   └── workflows/
+│       └── update-data.yml     # 毎日 11:00 JST に自動実行
+├── scripts/
+│   ├── download_jartic.py      # 一括ダウンロードスクリプト
+│   └── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
+├── data/                       # 生CSV（gitignore対象）
+│   ├── shoshiki1/              # 様式1: 常設トラカン 5分間
 │   │   └── YYYYMMDD_HHMM.csv
-│   └── shoshiki4/          # 様式4: CCTVトラカン 1時間
+│   ├── shoshiki2/              # 様式2: 常設トラカン 1時間
+│   │   └── YYYYMMDD.csv
+│   ├── shoshiki3/              # 様式3: CCTVトラカン 5分間
+│   │   └── YYYYMMDD_HHMM.csv
+│   └── shoshiki4/              # 様式4: CCTVトラカン 1時間
 │       └── YYYYMMDD.csv
-└── output/
-    ├── stations.geojson        # 観測点マスタ (2,060点)
-    ├── stations.mbtiles        # ベクトルタイル MBTiles形式 (tippecanoe生成)
-    ├── stations.pmtiles        # ベクトルタイル PMTiles形式 (tippecanoe生成)
-    ├── data_5m/                # 5分間交通量 (様式1+3合算)
-    │   └── YYYYMMDD.json.gz        # 1日分・288タイムステップ (~2.6MB/日)
-    ├── data_1h/                # 1時間交通量 (様式2+4合算)
-    │   └── YYYYMMDD.json.gz        # 1日分・24タイムステップ (~330KB/日)
-    └── data_1h_all.json.gz     # 1時間交通量 全期間統合 (91日・2,184ステップ・29.6MB)
+├── docs/                       # GitHub Pages + S3配信ファイル
+│   ├── index.html              # ビューワー
+│   ├── pale.json               # 地図スタイル（国土地理院）
+│   ├── assets/                 # Viteビルド成果物
+│   ├── stations.pmtiles        # 観測点ベクトルタイル → S3配信（gitignore）
+│   ├── stations.geojson        # 観測点マスタ（gitignore）
+│   ├── data_5m/                # 5分間交通量 → S3配信（gitignore）
+│   │   └── YYYYMMDD.json.gz
+│   └── data_1h_all.json.gz     # 1時間交通量 全期間統合 → S3配信（gitignore）
+└── viewer/                     # Viteプロジェクト（ソース）
+    └── src/main.ts
 ```
 
 ## 時刻別JSON構造
@@ -174,7 +179,8 @@ japan-mlit-traffic-data/
 ## ダウンロード実行
 
 ```bash
-python download_jartic.py
+python scripts/download_jartic.py
+python scripts/process_csv.py
 ```
 
 - リクエスト数: 926回（様式1: 372, 様式2: 91, 様式3: 372, 様式4: 91）
