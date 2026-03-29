@@ -1,0 +1,58 @@
+name: Update Traffic Data
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 毎日 11:00 JST（UTC 02:00）
+  workflow_dispatch:       # 手動実行も可能
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Get today's date (for cache key)
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      # 前日のキャッシュを復元 → 既存CSVはダウンロードをスキップ
+      - name: Restore CSV cache
+        uses: actions/cache@v4
+        with:
+          path: data/
+          key: jartic-csv-${{ steps.date.outputs.date }}
+          restore-keys: |
+            jartic-csv-
+
+      - name: Download new CSV data
+        run: python scripts/download_jartic.py
+
+      - name: Process CSV to JSON
+        run: python scripts/process_csv.py
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      # 差分のみアップロード（新しい日付ファイルだけ）
+      - name: Sync data_5m to S3
+        run: |
+          aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/traffic-data/data_5m/ \
+            --size-only
+
+      # 全期間統合ファイルは毎日更新
+      - name: Upload data_1h_all to S3
+        run: |
+          aws s3 cp docs/data_1h_all.json.gz \
+            s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
