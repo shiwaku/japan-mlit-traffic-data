@@ -1,9 +1,7 @@
 name: Update Traffic Data
 
 on:
-  schedule:
-    - cron: '0 0 * * 1'  # 毎週月曜 9:00 JST（UTC 00:00）
-  workflow_dispatch:       # 手動実行も可能
+  workflow_dispatch:  # 手動実行のみ
 
 jobs:
   update:

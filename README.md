@@ -208,7 +208,7 @@ aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/traffic-data/stations.pmt
 
 ## 自動更新（GitHub Actions）
 
-`.github/workflows/update-data.yml` により毎週月曜 **9:00 JST** に自動実行されます。
+`.github/workflows/update-data.yml` により **手動実行**（`workflow_dispatch`）します。
 
 | ステップ | 内容 |
 |---------|------|

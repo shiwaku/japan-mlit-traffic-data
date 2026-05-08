@@ -107,7 +107,7 @@ japan-mlit-traffic-data/
 ├── CLAUDE.md
 ├── .github/
 │   └── workflows/
-│       └── update-data.yml     # 毎週月曜 9:00 JST に自動実行（ビューワー自動ビルド含む）
+│       └── update-data.yml     # 手動実行（workflow_dispatch）、ビューワー自動ビルド含む
 ├── scripts/
 │   ├── download_jartic.py      # 一括ダウンロードスクリプト
 │   └── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
