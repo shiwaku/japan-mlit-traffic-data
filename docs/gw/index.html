@@ -107,12 +107,12 @@
       <span id="legend-arrow">▲</span>
     </div>
     <div class="lg-body" id="legend-body">
-      <div class="lg-row"><div class="lg-dot" style="background:#2166ac"></div><span>≤ −10%</span></div>
-      <div class="lg-row"><div class="lg-dot" style="background:#92c5de"></div><span>−10 〜 0%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#0571b0"></div><span>≤ −10%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#74add1"></div><span>−10 〜 0%</span></div>
       <div class="lg-row"><div class="lg-dot" style="background:#fddbc7"></div><span>0 〜 +10%</span></div>
-      <div class="lg-row"><div class="lg-dot" style="background:#f4a582"></div><span>+10 〜 +20%</span></div>
-      <div class="lg-row"><div class="lg-dot" style="background:#d6604d"></div><span>+20 〜 +30%</span></div>
-      <div class="lg-row"><div class="lg-dot" style="background:#b2182b"></div><span>&gt; +30%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#fc8d59"></div><span>+10 〜 +20%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#d7301f"></div><span>+20 〜 +30%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#7f0000"></div><span>&gt; +30%</span></div>
       <div class="lg-sep"></div>
       <div class="lg-row"><div class="lg-dot" style="background:#e0e0e0"></div><span>データなし</span></div>
       <div class="lg-sep"></div>
@@ -145,12 +145,12 @@
         "case",
         ["==", ["typeof", ["get", prop]], "number"],
         ["step", ["get", prop],
-          "#2166ac",
-          -10, "#92c5de",
+          "#0571b0",
+          -10, "#74add1",
             0, "#fddbc7",
-           10, "#f4a582",
-           20, "#d6604d",
-           30, "#b2182b"
+           10, "#fc8d59",
+           20, "#d7301f",
+           30, "#7f0000"
         ],
         "#e0e0e0"
       ];
@@ -161,6 +161,7 @@
       style: "../pale.json",
       center: [136.5, 36.0],
       zoom: window.innerWidth <= 640 ? 4 : 5,
+      hash: true,
       customAttribution:
         '出典: <a href="https://www.jartic-open-traffic.org/" target="_blank">' +
         '国土交通省 JARTIC オープン交通データ</a>（参考値）'
@@ -175,7 +176,7 @@
       map.addLayer({
         id: "pref-fill", type: "fill",
         source: "gw_pref", "source-layer": "gw_pref",
-        paint: { "fill-color": colorStep("change_rate"), "fill-opacity": 0.72 }
+        paint: { "fill-color": colorStep("change_rate"), "fill-opacity": 0.75 }
       });
       map.addLayer({
         id: "pref-line", type: "line",
@@ -191,8 +192,8 @@
         paint: {
           "circle-color": colorStep("change_rate"),
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 4, 10, 10],
-          "circle-stroke-width": 1.2,
-          "circle-stroke-color": "rgba(255,255,255,0.85)"
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "rgba(255,255,255,0.9)"
         }
       });
     });
