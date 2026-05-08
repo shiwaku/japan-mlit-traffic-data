@@ -172,7 +172,7 @@
 
     map.on("load", () => {
       // ── 都道府県レイヤー ──
-      map.addSource("gw_pref", { type: "vector", url: "pmtiles://gw_pref.pmtiles" });
+      map.addSource("gw_pref", { type: "vector", url: "pmtiles://gw_pref_s2.pmtiles" });
       map.addLayer({
         id: "pref-fill", type: "fill",
         source: "gw_pref", "source-layer": "gw_pref",
@@ -185,7 +185,7 @@
       });
 
       // ── 観測点レイヤー ──
-      map.addSource("gw_stations", { type: "vector", url: "pmtiles://gw_stations.pmtiles" });
+      map.addSource("gw_stations", { type: "vector", url: "pmtiles://gw_stations_s2.pmtiles" });
       map.addLayer({
         id: "stations-circle", type: "circle",
         source: "gw_stations", "source-layer": "gw_stations",
