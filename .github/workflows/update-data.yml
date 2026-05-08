@@ -7,9 +7,6 @@ jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    permissions:
-      contents: write  # ビューワー自動ビルド＆プッシュに必要
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,24 +63,3 @@ jobs:
           aws s3 cp docs/data_1h_all.json.gz \
             s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
 
-      # ビューワーを自動ビルドして GitHub Pages へプッシュ
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: viewer/package-lock.json
-
-      - name: Build viewer
-        run: |
-          cd viewer
-          npm ci
-          npm run build
-
-      - name: Commit and push viewer build
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/
-          git diff --cached --quiet || git commit -m "Auto-update viewer build [skip ci]"
-          git push
