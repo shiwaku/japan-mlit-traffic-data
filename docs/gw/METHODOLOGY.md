@@ -66,7 +66,7 @@ BL_avg  = 比較基準期間（前1週・前2週同曜日）の有効1時間値�
 
 1. 観測点の座標と都道府県ポリゴン（dataofjapan）を空間結合（`within`）
 2. 未割当点（沿岸・離島）は `sjoin_nearest`（EPSG:32654 投影後）で最近傍割当
-3. 都道府県値 = 当該都道府県内の観測点増減率の**単純平均**
+3. 都道府県値 = `(都道府県内観測点の gw_hourly_avg 合計 / bl_hourly_avg 合計 − 1) × 100`（**交通量加重平均**）
 
 都道府県ポリゴン出典: [dataofjapan/land](https://github.com/dataofjapan/land)（`nam_ja`フィールド）
 
