@@ -171,10 +171,12 @@ async function load1hAll(): Promise<void> {
   const progress = document.getElementById("loading-progress")!;
   const label = document.getElementById("loading-label")!;
   loadingRow.classList.remove("hidden");
-  label.textContent = "3ヶ月分データ読み込み中...";
+  label.textContent = "データ読み込み中...";
 
   try {
-    const res = await fetch(DATA_1H_ALL);
+    // キャッシュバスト: 日付単位で更新を反映
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const res = await fetch(`${DATA_1H_ALL}?v=${today}`);
     if (!res.ok) throw new Error("fetch failed");
     const total = Number(res.headers.get("content-length") ?? 0);
     const reader = res.body!.getReader();
@@ -214,7 +216,9 @@ async function load1hAll(): Promise<void> {
     const text = new TextDecoder().decode(combined2);
     data1h = JSON.parse(text);
     timecodes1h = Object.keys(data1h!).sort();
-    document.getElementById("slider-1h")!.setAttribute("max", String(timecodes1h.length - 1));
+    const slider1h = document.getElementById("slider-1h") as HTMLInputElement;
+    slider1h.setAttribute("max", String(timecodes1h.length - 1));
+    slider1h.value = String(timecodes1h.length - 1); // 最新タイムステップを初期表示
     label.textContent = `読み込み完了（${timecodes1h.length.toLocaleString()}ステップ）`;
     setTimeout(() => loadingRow.classList.add("hidden"), 2000);
   } catch (e) {
@@ -388,7 +392,7 @@ async function fetchAvailable5mDates(): Promise<string[]> {
   // 暫定: data_1h/ の日付範囲から推定（91日間）
   // index.json を別途生成するのが理想だが、ここでは /data_5m/index.json を参照
   try {
-    const res = await fetch("/data_5m/index.json");
+    const res = await fetch(`${DATA_5M_BASE}index.json`);
     if (res.ok) {
       const json = await res.json() as { dates: string[] };
       // 不正なエントリ（"index.json"等）を除外

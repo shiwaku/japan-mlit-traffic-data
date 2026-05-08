@@ -1,15 +1,12 @@
 name: Update Traffic Data
 
 on:
-  schedule:
-    - cron: '0 2 * * *'  # 毎日 11:00 JST（UTC 02:00）
-  workflow_dispatch:       # 手動実行も可能
+  workflow_dispatch:  # 手動実行のみ
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,12 +29,6 @@ jobs:
           restore-keys: |
             jartic-csv-
 
-      - name: Download new CSV data
-        run: python scripts/download_jartic.py
-
-      - name: Process CSV to JSON
-        run: python scripts/process_csv.py
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -45,14 +36,30 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
+      - name: Download new CSV data
+        run: python scripts/download_jartic.py
+
+      # 既存の蓄積データをS3から取得してマージに備える
+      - name: Download existing 1h accumulated data from S3
+        run: |
+          mkdir -p docs
+          aws s3 cp s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz docs/data_1h_all.json.gz || true
+
+      - name: Process CSV to JSON
+        run: python scripts/process_csv.py
+
       # 差分のみアップロード（新しい日付ファイルだけ）
       - name: Sync data_5m to S3
         run: |
           aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/traffic-data/data_5m/ \
             --size-only
+          # index.json は毎回上書き（--size-only だとスキップされる場合があるため）
+          aws s3 cp docs/data_5m/index.json \
+            s3://pmtiles-data/mlit/traffic-data/data_5m/index.json
 
-      # 全期間統合ファイルは毎日更新
+      # 全期間統合ファイルは毎回更新
       - name: Upload data_1h_all to S3
         run: |
           aws s3 cp docs/data_1h_all.json.gz \
             s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
+

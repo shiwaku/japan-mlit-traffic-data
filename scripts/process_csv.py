@@ -208,13 +208,22 @@ def main():
             )
             log.info(f"  → {out_index} ({len(dates_list)}日分)")
 
-        # 1時間データのみ: 全期間統合ファイルを追加生成
+        # 1時間データのみ: 全期間統合ファイルを追加生成（既存データとマージして蓄積）
         if key == "1h":
             log.info("  [1h] 全期間統合ファイル生成 (data_1h_all.json.gz)")
+            out_all = OUTPUT_DIR / "data_1h_all.json.gz"
+
+            # 既存ファイルがあれば読み込んでマージ（過去データを保持）
             all_timecodes: dict[str, dict] = {}
+            if out_all.exists():
+                log.info("  [1h] 既存データを読み込み中...")
+                with gzip.open(out_all, "rt", encoding="utf-8") as f:
+                    all_timecodes = json.load(f)
+                log.info(f"  [1h] 既存タイムステップ数: {len(all_timecodes):,}")
+
             for time_data in (daily[d] for d in sorted(daily)):
                 all_timecodes.update(time_data)
-            out_all = OUTPUT_DIR / "data_1h_all.json.gz"
+
             payload = json.dumps(all_timecodes, ensure_ascii=False, separators=(",", ":"))
             with gzip.open(out_all, "wt", encoding="utf-8") as f:
                 f.write(payload)
