@@ -107,7 +107,7 @@ japan-mlit-traffic-data/
 ├── CLAUDE.md
 ├── .github/
 │   └── workflows/
-│       └── update-data.yml     # 毎日 11:00 JST に自動実行
+│       └── update-data.yml     # 毎週月曜 9:00 JST に自動実行（ビューワー自動ビルド含む）
 ├── scripts/
 │   ├── download_jartic.py      # 一括ダウンロードスクリプト
 │   └── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
@@ -128,7 +128,8 @@ japan-mlit-traffic-data/
 │   ├── stations.geojson        # 観測点マスタ（gitignore）
 │   ├── data_5m/                # 5分間交通量 → S3配信（gitignore）
 │   │   └── YYYYMMDD.json.gz
-│   └── data_1h_all.json.gz     # 1時間交通量 全期間統合 → S3配信（gitignore）
+│   ├── data_5m/index.json      # 利用可能日付一覧 → S3配信（gitignore）
+│   └── data_1h_all.json.gz     # 1時間交通量 全期間累積統合 → S3配信（gitignore）
 └── viewer/                     # Viteプロジェクト（ソース）
     └── src/main.ts
 ```
@@ -166,9 +167,9 @@ japan-mlit-traffic-data/
 
 ### 1時間モード
 
-- スライダー範囲: **3ヶ月分**（2,184コマ）
-- データ: `data_1h_all.json.gz` をページロード時に一括フェッチ（29.6MB）
-- ロード完了後、スライダーが全期間を即時スクラブ可能
+- スライダー範囲: **累積全期間**（実行ごとに蓄積）
+- データ: `data_1h_all.json.gz` をページロード時に一括フェッチ（日次キャッシュバスト付き）
+- ロード完了後、スライダーが全期間を即時スクラブ可能（最新タイムステップから開始）
 
 ### 共通アーキテクチャ
 
