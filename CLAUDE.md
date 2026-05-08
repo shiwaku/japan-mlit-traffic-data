@@ -218,7 +218,7 @@ japan-mlit-traffic-data/
 | `都道府県名` | str | 都道府県名 |
 | `都道府県コード` | int | 都道府県 JIS コード |
 | `観測点数` | int | 集計に用いた観測点数（change_rate が有効な点のみ） |
-| `change_rate` | float | 都道府県内観測点の増減率の単純平均（%） |
+| `change_rate` | float | 都道府県内観測点の交通量加重平均増減率（%）= `(Σgw_hourly_avg / Σbl_hourly_avg − 1) × 100` |
 | `gw_hourly_avg` | float | 都道府県内観測点の gw_hourly_avg の平均 |
 | `bl_hourly_avg` | float | 都道府県内観測点の bl_hourly_avg の平均 |
 | `geometry` | Polygon | 都道府県ポリゴン（EPSG:4326、dataofjapan 由来） |

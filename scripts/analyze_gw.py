@@ -197,16 +197,20 @@ if len(unassigned):
 print(f"   未割当: {joined['都道府県名'].isna().sum()} 点")
 
 # ─── 4. 都道府県集計 ─────────────────────────────────────────────
-pref_stats = (
+pref_agg = (
     joined.dropna(subset=["都道府県名", "change_rate"])
     .groupby(["都道府県名", "都道府県コード"], as_index=False)
     .agg(
         観測点数=("change_rate", "count"),
-        change_rate=("change_rate", "mean"),
+        _gw_sum=("gw_hourly_avg", "sum"),
+        _bl_sum=("bl_hourly_avg", "sum"),
         gw_hourly_avg=("gw_hourly_avg", "mean"),
         bl_hourly_avg=("bl_hourly_avg", "mean"),
     )
-    .round({"change_rate": 2, "gw_hourly_avg": 1, "bl_hourly_avg": 1})
+)
+pref_agg["change_rate"] = ((pref_agg["_gw_sum"] / pref_agg["_bl_sum"]) - 1) * 100
+pref_stats = pref_agg.drop(columns=["_gw_sum", "_bl_sum"]).round(
+    {"change_rate": 2, "gw_hourly_avg": 1, "bl_hourly_avg": 1}
 )
 pref_poly = pref.merge(pref_stats, on=["都道府県名", "都道府県コード"], how="left")
 
