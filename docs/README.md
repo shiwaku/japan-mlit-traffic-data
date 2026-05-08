@@ -23,12 +23,12 @@
 
 | ファイル | 役割 |
 |---|---|
-| `gw/index.html` | GW 増減率マップビューワー（MapLibre） |
+| `gw/index.html` | GW 増減率マップビューワー（MapLibre、様式2のみ・有効1,010点） |
 | `gw/METHODOLOGY.md` | 分析手法・前提条件の説明 |
-| `gw/gw_stations.pmtiles` | 観測点増減率タイル（全データ: 1,662点） |
-| `gw/gw_pref.pmtiles` | 都道府県増減率タイル（全データ） |
-| `gw/gw_stations_s2.pmtiles` | 同上・様式2のみ（1,017点） |
-| `gw/gw_pref_s2.pmtiles` | 同上・様式2のみ |
+| `gw/gw_stations_s2.pmtiles` | 観測点増減率タイル・様式2のみ（有効1,010点）★ウェブマップ使用 |
+| `gw/gw_pref_s2.pmtiles` | 都道府県増減率タイル・様式2のみ ★ウェブマップ使用 |
+| `gw/gw_stations.pmtiles` | 観測点増減率タイル（様式2+4、有効1,633点） |
+| `gw/gw_pref.pmtiles` | 都道府県増減率タイル（様式2+4） |
 | `gw/gw_*.qml` | QGIS スタイルファイル |
 
 ### gitignore 対象（大容量）
