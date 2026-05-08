@@ -110,7 +110,8 @@ japan-mlit-traffic-data/
 │       └── update-data.yml     # 手動実行（workflow_dispatch）、ビューワー自動ビルド含む
 ├── scripts/
 │   ├── download_jartic.py      # 一括ダウンロードスクリプト
-│   └── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
+│   ├── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
+│   └── analyze_gw.py           # GW増減率分析（GeoParquet/PMTiles/QML/バックデータ出力）
 ├── data/                       # 生CSV（gitignore対象）
 │   ├── shoshiki1/              # 様式1: 常設トラカン 5分間
 │   │   └── YYYYMMDD_HHMM.csv
@@ -129,7 +130,16 @@ japan-mlit-traffic-data/
 │   ├── data_5m/                # 5分間交通量 → S3配信（gitignore）
 │   │   └── YYYYMMDD.json.gz
 │   ├── data_5m/index.json      # 利用可能日付一覧 → S3配信（gitignore）
-│   └── data_1h_all.json.gz     # 1時間交通量 全期間累積統合 → S3配信（gitignore）
+│   ├── data_1h_all.json.gz     # 1時間交通量 全期間累積統合 → S3配信（gitignore）
+│   └── gw/                     # GW増減率分析 出力ディレクトリ
+│       ├── gw_stations.parquet     # 観測点別増減率 GeoParquet（gitignore）
+│       ├── gw_pref.parquet         # 都道府県別増減率 GeoParquet（gitignore）
+│       ├── gw_stations.pmtiles     # 観測点 PMTiles z5–14（gitignore）
+│       ├── gw_pref.pmtiles         # 都道府県 PMTiles z4–10（gitignore）
+│       ├── gw_stations.qml         # QGIS 点スタイル
+│       ├── gw_pref.qml             # QGIS 面スタイル
+│       ├── gw_backdata.csv.gz      # 時刻別生データ（バックデータ）（gitignore）
+│       └── *_s2.*                  # --shoshiki2-only 実行時の様式2限定版
 └── viewer/                     # Viteプロジェクト（ソース）
     └── src/main.ts
 ```
@@ -176,6 +186,57 @@ japan-mlit-traffic-data/
 - `stations.pmtiles` でジオメトリ（位置）を描画
 - 時刻別JSONから `観測点コード` をキーに交通量を取得
 - MapLibre GL JS の `setPaintProperty` で色のみ更新（ジオメトリ再描画なし）
+
+## GW 増減率分析（analyze_gw.py）
+
+### 分析概要
+
+- 対象期間: 2026/4/29–5/6（8日間）
+- 比較基準: 各日の前1週・前2週の同曜日（計16日）の1時間平均を基準値とする
+- 交通量: 上り小型 + 上り大型 + 下り小型 + 下り大型 の合計（1時間値）
+- データソース: `data_1h_all.json.gz`（様式2 常設トラカン + 様式4 CCTVトラカン）
+- 有効観測点: 1,662点（GW期間・基準期間の両方にデータが存在する点のみ）
+
+### gw_stations.parquet の属性
+
+| カラム | 型 | 内容 |
+|---|---|---|
+| `観測点コード` | int | JARTIC 観測点コード |
+| `都道府県名` | str | 都道府県名（dataofjapan ポリゴンとの空間結合結果） |
+| `都道府県コード` | int | 都道府県 JIS コード |
+| `gw_hourly_avg` | float | GW期間の1時間平均交通量（上下合計、有効時間帯のみ平均） |
+| `bl_hourly_avg` | float | 基準期間の1時間平均交通量（同上） |
+| `change_rate` | float | 増減率（%）= `(gw / bl - 1) × 100`、bl=0 の場合 NaN |
+| `gw_hours` | int | GW期間の有効データ時間数（最大192 = 8日×24時間） |
+| `bl_hours` | int | 基準期間の有効データ時間数（最大384 = 16日×24時間） |
+| `geometry` | Point | 観測点位置（EPSG:4326） |
+
+### gw_pref.parquet の属性
+
+| カラム | 型 | 内容 |
+|---|---|---|
+| `都道府県名` | str | 都道府県名 |
+| `都道府県コード` | int | 都道府県 JIS コード |
+| `観測点数` | int | 集計に用いた観測点数（change_rate が有効な点のみ） |
+| `change_rate` | float | 都道府県内観測点の増減率の単純平均（%） |
+| `gw_hourly_avg` | float | 都道府県内観測点の gw_hourly_avg の平均 |
+| `bl_hourly_avg` | float | 都道府県内観測点の bl_hourly_avg の平均 |
+| `geometry` | Polygon | 都道府県ポリゴン（EPSG:4326、dataofjapan 由来） |
+
+### gw_backdata.csv.gz の属性
+
+GW期間・基準期間の時刻別生データ（増減率の算出根拠）。約93万行。
+
+| カラム | 型 | 内容 |
+|---|---|---|
+| `観測点コード` | int | JARTIC 観測点コード |
+| `時間コード` | str | `YYYYMMDDhh00` 形式（1時間粒度） |
+| `種別` | str | `"GW"`（4/29–5/6）または `"基準"`（前1週・前2週同曜日） |
+| `上り小型` | int | 上り方向・小型車交通量 |
+| `上り大型` | int | 上り方向・大型車交通量 |
+| `下り小型` | int | 下り方向・小型車交通量 |
+| `下り大型` | int | 下り方向・大型車交通量 |
+| `合計` | int | 上記4値の合計（change_rate 算出に使用した値） |
 
 ## ダウンロード実行
 
