@@ -221,6 +221,13 @@ async function load1hAll(): Promise<void> {
     slider1h.value = String(timecodes1h.length - 1); // 最新タイムステップを初期表示
     label.textContent = `読み込み完了（${timecodes1h.length.toLocaleString()}ステップ）`;
     setTimeout(() => loadingRow.classList.add("hidden"), 2000);
+
+    // 観測点数をデータから動的に取得
+    const stationCodes = new Set<string>();
+    for (const timeData of Object.values(data1h!)) {
+      for (const code of Object.keys(timeData)) stationCodes.add(code);
+    }
+    document.getElementById("status")!.textContent = `観測点: ${stationCodes.size.toLocaleString()}ヶ所`;
   } catch (e) {
     label.textContent = "読み込みエラー";
     console.error(e);
