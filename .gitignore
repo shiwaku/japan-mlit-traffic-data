@@ -32,3 +32,12 @@ viewer/city-plan-dm-viewer-main/
 
 # PMTilesの重複（docs/stations.pmtilesをmiddlewareで配信）
 viewer/public/stations.pmtiles
+
+# GW分析 大容量ファイル
+docs/gw/*.parquet
+docs/gw/*.csv.gz
+docs/gw/gw_map.png
+# PMTiles は GitHub Pages で配信するためコミット対象（各 ~1MB）
+
+# 参照画像・QGISプロジェクト
+HHo03PEbQAA058m.jfif
