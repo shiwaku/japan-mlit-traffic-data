@@ -1,7 +1,9 @@
 name: Update Traffic Data
 
 on:
-  workflow_dispatch:  # 手動実行のみ
+  workflow_dispatch:  # 手動実行
+  schedule:
+    - cron: '0 19 * * 0'  # 毎週月曜 4:00 JST（日曜 19:00 UTC）に自動実行
 
 jobs:
   update:
@@ -16,11 +18,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Get today's date (for cache key)
         id: date
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
-      # 前日のキャッシュを復元 → 既存CSVはダウンロードをスキップ
+      # 前回実行分のキャッシュを復元 → 既存CSVはダウンロードをスキップ
       - name: Restore CSV cache
         uses: actions/cache@v4
         with:
@@ -29,37 +36,44 @@ jobs:
           restore-keys: |
             jartic-csv-
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-
       - name: Download new CSV data
         run: python scripts/download_jartic.py
 
-      # 既存の蓄積データをS3から取得してマージに備える
-      - name: Download existing 1h accumulated data from S3
-        run: |
-          mkdir -p docs
-          aws s3 cp s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz docs/data_1h_all.json.gz || true
-
+      # API提供期間（5分間=直近1ヶ月、1時間=直近3ヶ月）のみを出力。過去データの蓄積はしない
       - name: Process CSV to JSON
         run: python scripts/process_csv.py
 
-      # 差分のみアップロード（新しい日付ファイルだけ）
-      - name: Sync data_5m to S3
+      - name: Install tippecanoe
         run: |
-          aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/traffic-data/data_5m/ \
-            --size-only
-          # index.json は毎回上書き（--size-only だとスキップされる場合があるため）
-          aws s3 cp docs/data_5m/index.json \
-            s3://pmtiles-data/mlit/traffic-data/data_5m/index.json
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev zlib1g-dev
+          git clone --depth 1 https://github.com/felt/tippecanoe.git /tmp/tippecanoe
+          make -C /tmp/tippecanoe -j"$(nproc)"
+          sudo make -C /tmp/tippecanoe install
 
-      # 全期間統合ファイルは毎回更新
-      - name: Upload data_1h_all to S3
+      - name: Build stations.pmtiles
         run: |
-          aws s3 cp docs/data_1h_all.json.gz \
-            s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
+          tippecanoe \
+            -o docs/stations.pmtiles \
+            --name=jartic-stations \
+            --layer=stations \
+            -z14 -Z5 \
+            -r1 \
+            --force \
+            docs/stations.geojson
 
+      - name: Build viewer
+        working-directory: viewer
+        run: |
+          npm ci
+          npm run build
+
+      # docs/ 一式を gh-pages ブランチに orphan commit で全差し替え
+      # （履歴を残さないことでリポジトリサイズを一定に保つ）
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs
+          publish_branch: gh-pages
+          force_orphan: true

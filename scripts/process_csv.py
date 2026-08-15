@@ -208,12 +208,14 @@ def main():
             )
             log.info(f"  → {out_index} ({len(dates_list)}日分)")
 
-        # 1時間データのみ: 全期間統合ファイルを追加生成（既存データとマージして蓄積）
+        # 1時間データのみ: 全期間統合ファイルを生成
+        # gh-pages は毎回 orphan commit で全差し替えのため、実行時点でAPIが
+        # 提供する期間（直近3ヶ月）がそのまま出力される（過去データの蓄積はしない）
         if key == "1h":
             log.info("  [1h] 全期間統合ファイル生成 (data_1h_all.json.gz)")
             out_all = OUTPUT_DIR / "data_1h_all.json.gz"
 
-            # 既存ファイルがあれば読み込んでマージ（過去データを保持）
+            # 既存ファイルがあれば読み込んでマージ（同一実行内でのみ意味を持つ）
             all_timecodes: dict[str, dict] = {}
             if out_all.exists():
                 log.info("  [1h] 既存データを読み込み中...")

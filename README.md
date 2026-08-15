@@ -109,13 +109,13 @@ python scripts/process_csv.py
 | ファイル | 内容 | サイズ |
 |---------|------|--------|
 | `docs/stations.geojson` | 観測点マスタ (2,060点) | 656KB |
-| `docs/data_5m/YYYYMMDD.json.gz` | 5分間交通量・日別 (様式1+3) | ~2.6MB/日 |
-| `docs/data_1h_all.json.gz` | 1時間交通量・全期間統合（累積蓄積）| 29.6MB〜（実行ごとに増加） |
+| `docs/data_5m/YYYYMMDD.json.gz` | 5分間交通量・日別 (様式1+3、API提供期間の直近1ヶ月分) | ~2.6MB/日 |
+| `docs/data_1h_all.json.gz` | 1時間交通量・全期間統合（API提供期間の直近3ヶ月分。過去分の蓄積はしない） | ~30MB |
 
 ### 3. ベクトルタイル生成（tippecanoe v2.17+ が必要）
 
 ```bash
-# PMTiles（MapLibre GL JS + S3等での利用）
+# PMTiles（MapLibre GL JS用）
 tippecanoe \
   -o docs/stations.pmtiles \
   --name=jartic-stations \
@@ -149,84 +149,30 @@ tippecanoe のインストール: https://github.com/felt/tippecanoe
 
 既存ファイルは自動でスキップされる。中断後の再実行でも途中から継続可能。
 
-## S3配信設定
+## データ配信（gh-pagesブランチ）
 
-データファイルは `s3://pmtiles-data/mlit/traffic-data/` に格納し、GitHub Pagesからは除外しています。
+クラウドストレージ（S3等）は使用していません。`docs/` 一式（ビューワー本体 + データファイル）を `gh-pages` ブランチに直接デプロイし、GitHub Pagesから配信します。
 
-### バケットポリシー（Refererによるアクセス制限）
+- `main` ブランチ: ソースコードのみ（`data_5m/`・`data_1h_all.json.gz`・`stations.pmtiles`・`stations.geojson`・ビルド成果物は`.gitignore`対象）
+- `gh-pages` ブランチ: 実行のたびに **orphan commit で全差し替え**（履歴を残さないため、リポジトリサイズは常に一定・約120MB程度に保たれる）
+- データの過去分蓄積は行わない。API提供期間（5分間データ=直近1ヶ月、1時間データ=直近3ヶ月）がそのまま反映される
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowReferer",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::pmtiles-data/mlit/traffic-data/*",
-      "Condition": {
-        "StringLike": {
-          "aws:Referer": [
-            "https://shiwaku.github.io/*",
-            "http://localhost:*/*"
-          ]
-        }
-      }
-    }
-  ]
-}
-```
-
-### CORSポリシー
-
-```json
-[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedOrigins": [
-      "https://shiwaku.github.io",
-      "http://localhost:5173"
-    ],
-    "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
-    "MaxAgeSeconds": 3600
-  }
-]
-```
-
-> **注意:** Refererヘッダーは偽装可能なため、完全なアクセス制御にはなりません。悪意ある大量取得の抑止と、gitへのデータ非掲載が主な目的です。
-
-### S3へのアップロード（手動）
-
-```bash
-aws s3 sync docs/data_5m/ s3://pmtiles-data/mlit/traffic-data/data_5m/ --size-only
-aws s3 cp docs/data_5m/index.json s3://pmtiles-data/mlit/traffic-data/data_5m/index.json
-aws s3 cp docs/data_1h_all.json.gz s3://pmtiles-data/mlit/traffic-data/data_1h_all.json.gz
-aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/traffic-data/stations.pmtiles
-```
+> **注意:** S3のRefererアクセス制限のような仕組みはないため、データファイルは誰でも直接ダウンロード可能です。JARTICの利用規約上「再配布の制限」に抵触しないよう、内容・利用範囲には注意してください。
 
 ## 自動更新（GitHub Actions）
 
-`.github/workflows/update-data.yml` により **手動実行**（`workflow_dispatch`）します。
+`.github/workflows/update-data.yml` により **手動実行**（`workflow_dispatch`）に加え、**毎週月曜 4:00 JST（日曜19:00 UTC）に自動実行**（`schedule`）します。
 
 | ステップ | 内容 |
 |---------|------|
 | CSVキャッシュ復元 | 前回の `data/` を再利用し差分ダウンロードのみ実施 |
-| AWSクレデンシャル設定 | S3アクセスに必要（ダウンロード前に設定） |
 | `download_jartic.py` | 新しいCSVのみ取得（既存ファイルはスキップ） |
-| S3から既存1hデータ取得 | `data_1h_all.json.gz` をS3からダウンロードしてマージに備える |
-| `process_csv.py` | 全データをJSON.gzに変換（1hは既存データとマージして蓄積） |
-| `aws s3 sync` | `data_5m/` の差分のみアップロード・`index.json` は毎回上書き |
-| `aws s3 cp` | `data_1h_all.json.gz` をアップロード（累積蓄積） |
-| ビューワービルド | `npm run build` でビューワーを再ビルドし `docs/` をプッシュ |
+| `process_csv.py` | 全データをJSON.gzに変換（API提供期間の直近分のみ、過去蓄積なし） |
+| tippecanoeインストール・`stations.pmtiles`生成 | ソースからビルド |
+| ビューワービルド | `npm run build` で `docs/` にビルド成果物を出力 |
+| `gh-pages`へデプロイ | `docs/` 一式を `gh-pages` ブランチへ orphan commit で全差し替え |
 
-### 必要なGitHub Secrets
-
-| Secret名 | 内容 |
-|---------|------|
-| `AWS_ACCESS_KEY_ID` | IAMアクセスキーID |
-| `AWS_SECRET_ACCESS_KEY` | IAMシークレットアクセスキー |
+AWS等の外部サービス・Secretsは不要です。
 
 ## ビューワー設計方針（MapLibre GL JS）
 
@@ -234,8 +180,8 @@ aws s3 cp docs/stations.pmtiles s3://pmtiles-data/mlit/traffic-data/stations.pmt
 
 | モード | スライダー範囲 | 日付選択 | データ |
 |--------|-------------|---------|--------|
-| 5分間 | 1日分（288コマ） | プルダウン（年月日） | `data_5m/YYYYMMDD.json.gz` を日付変更時フェッチ（S3から利用可能日付を取得） |
-| 1時間 | 累積全期間 | なし（スライダーで全期間・最新位置から開始） | `data_1h_all.json.gz` をページロード時一括フェッチ（日次キャッシュバスト） |
+| 5分間 | 1日分（288コマ） | プルダウン（年月日） | `data_5m/YYYYMMDD.json.gz` を日付変更時フェッチ（同一オリジンの`data_5m/index.json`から利用可能日付を取得） |
+| 1時間 | API提供期間（直近3ヶ月） | なし（スライダーで全期間・最新位置から開始） | `data_1h_all.json.gz` をページロード時一括フェッチ（日次キャッシュバスト） |
 
 - `stations.pmtiles` で観測点位置を描画
 - 時刻別JSONの `観測点コード` をキーに交通量を紐付け
