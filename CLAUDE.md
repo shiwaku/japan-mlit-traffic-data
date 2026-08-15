@@ -111,7 +111,11 @@ japan-mlit-traffic-data/
 ├── scripts/
 │   ├── download_jartic.py      # 一括ダウンロードスクリプト
 │   ├── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
-│   └── analyze_gw.py           # GW増減率分析（GeoParquet/PMTiles/QML/バックデータ出力）
+│   ├── analyze_gw.py           # GW増減率分析（GeoParquet/PMTiles/QML/バックデータ出力）
+│   ├── analyze_disaster.py     # 災害時の都道府県別 交通量異常検知
+│   ├── build_disaster_viz.py   # 上記結果 → docs/disaster/index.html
+│   └── assets/
+│       └── typhoon_2613_track.json  # 台風13号 経路（気象庁 台風位置表PDFより抽出）
 ├── data/                       # 生CSV（gitignore対象）
 │   ├── shoshiki1/              # 様式1: 常設トラカン 5分間
 │   │   └── YYYYMMDD_HHMM.csv
@@ -131,6 +135,8 @@ japan-mlit-traffic-data/
 │   │   └── YYYYMMDD.json.gz
 │   ├── data_5m/index.json      # 利用可能日付一覧（mainではgitignore）
 │   ├── data_1h_all.json.gz     # 1時間交通量・API提供期間の直近3ヶ月分（過去蓄積なし、mainではgitignore）
+│   ├── disaster/               # 災害時 交通量異常検知
+│   │   └── index.html          # 増減率マップ（自己完結HTML、データ埋め込み）
 │   └── gw/                     # GW増減率分析 出力ディレクトリ
 │       ├── gw_stations.parquet     # 観測点別増減率 GeoParquet（gitignore）
 │       ├── gw_pref.parquet         # 都道府県別増減率 GeoParquet（gitignore）
@@ -186,6 +192,38 @@ japan-mlit-traffic-data/
 - `stations.pmtiles` でジオメトリ（位置）を描画
 - 時刻別JSONから `観測点コード` をキーに交通量を取得
 - MapLibre GL JS の `setPaintProperty` で色のみ更新（ジオメトリ再描画なし）
+
+## 災害時 交通量異常検知（analyze_disaster.py / build_disaster_viz.py）
+
+### 手法
+
+- 対象日の1日交通量を、前1週・前2週の**同曜日**の平均と比較（曜日効果を除くため）
+- 観測点別の変化率を求め、その**中央値**を都道府県の代表値とする（外れ値に強い）
+- 平常日について同じ計算を行った結果を分布として保持し、対象日の値がその分布の何%点かを示す
+- データソース: `docs/data_5m/`（5分値。時間分解能が高く欠測判定がしやすい）
+
+### 除外条件（重要）
+
+| 条件 | 理由 |
+|---|---|
+| 有効コマ < 288×0.8 | センサー障害による全欠測を「交通量0＝通行止め」と誤認しないため |
+| 基準日の交通量 < 500 | 小規模観測点の比率ノイズを抑えるため |
+| 都道府県の観測点数 < 5 | 中央値が安定しないため（該当県は「データなし」として灰色表示） |
+
+### 検証済みの検出例
+
+| 日付 | 都道府県 | 中央値 | 平常日分布での位置 | 事象 |
+|---|---|---|---|---|
+| 2026/8/7 | 沖縄県 | -82.6% | 最下位 | 台風13号 沖縄本島最接近 |
+| 2026/8/13 | 千葉県 | -24.4% | 0.55%点 | 線状降水帯（関東が広域で同時低下） |
+
+**8/7の台風13号と8/13の千葉豪雨は無関係な別事象。** 台風13号は沖縄通過後に西進し中国大陸方向へ抜けている。
+
+### 解釈上の注意
+
+- 捉えているのは「広域の悪天候で運転が減ったこと」であり、冠水地点の特定はできない
+- 被災県の同定もできない（8/14は東京 -21.7% が千葉 -17.8% を上回った）
+- 閾値-20%での平常日発火率は1.10%（47県で約0.5県/日）。単独閾値では誤検知が多く、隣接県の同時低下を併用する必要がある
 
 ## GW 増減率分析（analyze_gw.py）
 
