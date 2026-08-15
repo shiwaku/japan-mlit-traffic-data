@@ -39,6 +39,7 @@ GROUPS = {
         "label": "1時間交通量",
         "datasets": ["shoshiki2", "shoshiki4"],
         "out_dir": "data_1h",
+        "write_daily_files": False,  # ビューワーは data_1h_all.json.gz のみ使用するため日別ファイルは書き出さない
     },
 }
 
@@ -156,22 +157,23 @@ def process_traffic_group(group_key: str, group: dict, out_base: Path):
                 # 欠測は None のままJSONに格納（フロントエンドで判定）
                 daily[date][timecode][code] = [up_s, up_l, down_s, down_l]
 
-    # 日別JSONとして書き出し
-    ext = ".json.gz" if GZIP_OUTPUT else ".json"
-    total_files = 0
-    for date, time_data in sorted(daily.items()):
-        out_path = out_dir / f"{date}{ext}"
-        payload = json.dumps(time_data, ensure_ascii=False, separators=(",", ":"))
-        if GZIP_OUTPUT:
-            with gzip.open(out_path, "wt", encoding="utf-8") as f:
-                f.write(payload)
-        else:
-            out_path.write_text(payload, encoding="utf-8")
-        total_files += 1
+    # 日別JSONとして書き出し（write_daily_files=False のグループはスキップ）
+    if group.get("write_daily_files", True):
+        ext = ".json.gz" if GZIP_OUTPUT else ".json"
+        total_files = 0
+        for date, time_data in sorted(daily.items()):
+            out_path = out_dir / f"{date}{ext}"
+            payload = json.dumps(time_data, ensure_ascii=False, separators=(",", ":"))
+            if GZIP_OUTPUT:
+                with gzip.open(out_path, "wt", encoding="utf-8") as f:
+                    f.write(payload)
+            else:
+                out_path.write_text(payload, encoding="utf-8")
+            total_files += 1
 
-    log.info(
-        f"  {group['label']}: {total_files}日分を {out_dir} に出力"
-    )
+        log.info(
+            f"  {group['label']}: {total_files}日分を {out_dir} に出力"
+        )
     return daily
 
 
