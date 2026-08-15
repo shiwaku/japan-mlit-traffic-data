@@ -107,7 +107,7 @@ japan-mlit-traffic-data/
 ├── CLAUDE.md
 ├── .github/
 │   └── workflows/
-│       └── update-data.yml     # 手動実行（workflow_dispatch）、ビューワー自動ビルド含む
+│       └── update-data.yml     # 手動実行（workflow_dispatch）＋毎週月曜4:00 JST自動実行（schedule）
 ├── scripts/
 │   ├── download_jartic.py      # 一括ダウンロードスクリプト
 │   ├── process_csv.py          # CSV → GeoJSON + 時刻別JSON生成
@@ -121,16 +121,16 @@ japan-mlit-traffic-data/
 │   │   └── YYYYMMDD_HHMM.csv
 │   └── shoshiki4/              # 様式4: CCTVトラカン 1時間
 │       └── YYYYMMDD.csv
-├── docs/                       # GitHub Pages + S3配信ファイル
-│   ├── index.html              # ビューワー
+├── docs/                       # GitHub Pages配信ファイル（gh-pagesブランチへorphan commitでデプロイ）
+│   ├── index.html              # ビューワー（Viteビルド成果物、mainではgitignore）
 │   ├── pale.json               # 地図スタイル（国土地理院）
-│   ├── assets/                 # Viteビルド成果物
-│   ├── stations.pmtiles        # 観測点ベクトルタイル → S3配信（gitignore）
-│   ├── stations.geojson        # 観測点マスタ（gitignore）
-│   ├── data_5m/                # 5分間交通量 → S3配信（gitignore）
+│   ├── assets/                 # Viteビルド成果物（mainではgitignore）
+│   ├── stations.pmtiles        # 観測点ベクトルタイル（mainではgitignore、CIでtippecanoe生成）
+│   ├── stations.geojson        # 観測点マスタ（mainではgitignore）
+│   ├── data_5m/                # 5分間交通量・API提供期間の直近1ヶ月分（mainではgitignore）
 │   │   └── YYYYMMDD.json.gz
-│   ├── data_5m/index.json      # 利用可能日付一覧 → S3配信（gitignore）
-│   ├── data_1h_all.json.gz     # 1時間交通量 全期間累積統合 → S3配信（gitignore）
+│   ├── data_5m/index.json      # 利用可能日付一覧（mainではgitignore）
+│   ├── data_1h_all.json.gz     # 1時間交通量・API提供期間の直近3ヶ月分（過去蓄積なし、mainではgitignore）
 │   └── gw/                     # GW増減率分析 出力ディレクトリ
 │       ├── gw_stations.parquet     # 観測点別増減率 GeoParquet（gitignore）
 │       ├── gw_pref.parquet         # 都道府県別増減率 GeoParquet（gitignore）
@@ -177,7 +177,7 @@ japan-mlit-traffic-data/
 
 ### 1時間モード
 
-- スライダー範囲: **累積全期間**（実行ごとに蓄積）
+- スライダー範囲: **API提供期間（直近3ヶ月）**（過去分の蓄積はしない。gh-pagesは実行ごとに全差し替え）
 - データ: `data_1h_all.json.gz` をページロード時に一括フェッチ（日次キャッシュバスト付き）
 - ロード完了後、スライダーが全期間を即時スクラブ可能（最新タイムステップから開始）
 

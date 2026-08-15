@@ -4,9 +4,8 @@ import * as pmtiles from "pmtiles";
 
 // ── 定数 ────────────────────────────────────────────────
 const BASE = import.meta.env.BASE_URL; // dev: "/", prod: "/japan-mlit-traffic-data/"
-const S3_BASE = "https://pmtiles-data.s3.ap-northeast-1.amazonaws.com/mlit/traffic-data/";
-const DATA_5M_BASE = `${S3_BASE}data_5m/`;
-const DATA_1H_ALL = `${S3_BASE}data_1h_all.json.gz`;
+const DATA_5M_BASE = `${BASE}data_5m/`;
+const DATA_1H_ALL = `${BASE}data_1h_all.json.gz`;
 const GSI_PALE_STYLE = `${BASE}pale.json`;
 
 // 5分データで利用可能な日付リスト（ビルド時に埋め込み or 動的取得）
@@ -443,7 +442,7 @@ async function initMap() {
 
     map.addSource("stations", {
       type: "vector",
-      url: `pmtiles://${S3_BASE}stations.pmtiles`,
+      url: `pmtiles://${BASE}stations.pmtiles`,
     });
 
     map.addLayer({
