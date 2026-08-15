@@ -272,6 +272,40 @@ def build_tasks(ds: dict, now: datetime) -> list[dict]:
     return tasks
 
 
+def prune_stale_files(ds: dict, now: datetime) -> int:
+    """API提供期間より古くなったCSVを削除する
+
+    GitHub Actionsのキャッシュでdata/を実行間で使い回すため、削除しないと
+    期限切れファイルが無期限に残り続け、process_csv.pyの出力が蓄積してしまう。
+    """
+    batch_hours = ds["batch_hours"]
+    period_days = ds["period_days"]
+    start_dt = align_to_batch(now - timedelta(days=period_days), batch_hours)
+
+    out_dir = OUTPUT_DIR / ds["id"]
+    if not out_dir.exists():
+        return 0
+
+    if batch_hours >= 24:
+        fname_re = re.compile(r"^(\d{8})\.csv$")
+    else:
+        fname_re = re.compile(r"^(\d{8})_(\d{4})\.csv$")
+
+    removed = 0
+    for fpath in out_dir.glob("*.csv"):
+        m = fname_re.match(fpath.name)
+        if not m:
+            continue
+        if batch_hours >= 24:
+            file_dt = datetime.strptime(m.group(1), "%Y%m%d")
+        else:
+            file_dt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M")
+        if file_dt < start_dt:
+            fpath.unlink()
+            removed += 1
+    return removed
+
+
 def estimate_requests(now: datetime) -> int:
     """総リクエスト数を事前推計"""
     total = 0
@@ -299,6 +333,9 @@ def main():
         if not ds["enabled"]:
             log.info(f"スキップ: {ds['label']}")
             continue
+        removed = prune_stale_files(ds, now)
+        if removed:
+            log.info(f"  {ds['label']}: 期限切れファイル {removed}件を削除")
         tasks = build_tasks(ds, now)
         log.info(f"  {ds['label']}: {len(tasks)}バッチ")
         per_ds_tasks.append(tasks)
