@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>大型連休 2026 交通量増減率マップ</title>
+  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet">
+  <script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #map { width: 100%; height: 100%; }
+    body { font-family: "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif; }
+
+    /* ── タイトル ── */
+    #title {
+      position: absolute; top: 10px; left: 10px; z-index: 10;
+      background: rgba(255,255,255,0.93);
+      padding: 10px 14px; border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+      max-width: 310px;
+    }
+    #title h1 { font-size: 14px; font-weight: bold; color: #222; }
+    #title p  { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.5; }
+
+    /* ── 凡例 ── */
+    #legend {
+      position: absolute; bottom: 36px; right: 10px; z-index: 10;
+      background: rgba(255,255,255,0.93);
+      padding: 10px 14px; border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+      font-size: 12px; min-width: 140px;
+    }
+    #legend-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; gap: 8px;
+    }
+    #legend-header h3 { font-size: 12px; font-weight: bold; }
+    #legend-arrow { font-size: 10px; color: #888; flex-shrink: 0; }
+    .lg-body { margin-top: 7px; }
+    .lg-row { display: flex; align-items: center; gap: 7px; margin: 4px 0; }
+    .lg-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.15); flex-shrink: 0;
+    }
+    .lg-sep { border-top: 1px solid #ddd; margin: 6px 0; }
+    .lg-note { font-size: 10px; color: #888; }
+
+    /* ── ポップアップ ── */
+    .maplibregl-popup-content {
+      font-size: 13px; line-height: 1.7;
+      min-width: 180px; padding: 12px 14px;
+    }
+    .pu-title { font-weight: bold; font-size: 14px; margin-bottom: 2px; }
+    .pu-pref  { color: #666; font-size: 11px; margin-bottom: 6px; }
+    .pu-rate  { font-size: 22px; font-weight: bold; margin-bottom: 8px; }
+    .pu-rate.up   { color: #c00000; }
+    .pu-rate.down { color: #2166ac; }
+    .pu-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .pu-tbl td { padding: 2px 0; }
+    .pu-tbl td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── モバイル（640px 以下）── */
+    @media (max-width: 640px) {
+      #title {
+        top: 8px; left: 8px;
+        max-width: calc(100vw - 60px); /* ナビコントロール分を除く */
+        padding: 7px 10px;
+      }
+      #title h1 { font-size: 12px; }
+      #title p  { font-size: 10px; margin-top: 3px; }
+
+      #legend {
+        bottom: 28px; right: 8px;
+        padding: 8px 10px;
+        min-width: 0;
+        font-size: 12px;
+      }
+
+      .maplibregl-popup-content {
+        font-size: 14px; min-width: 200px; padding: 14px 16px;
+      }
+      .pu-title { font-size: 15px; }
+      .pu-rate  { font-size: 26px; }
+      .pu-tbl   { font-size: 13px; }
+
+      /* ナビコントロールを下に移動 */
+      .maplibregl-ctrl-top-right { top: auto; bottom: 80px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="title">
+    <h1>大型連休 2026 交通量増減率マップ</h1>
+    <p>
+      GW期間: 2026/4/29–5/6（8日間）<br>
+      比較基準: 前1週・前2週の同曜日平均 | 上下・全車種合算<br>
+      出典: 国土交通省 JARTIC オープン交通データ（参考値）
+    </p>
+  </div>
+
+  <div id="legend">
+    <div id="legend-header" onclick="toggleLegend()">
+      <h3>観測点の増減率</h3>
+      <span id="legend-arrow">▲</span>
+    </div>
+    <div class="lg-body" id="legend-body">
+      <div class="lg-row"><div class="lg-dot" style="background:#0571b0"></div><span>≤ −10%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#74add1"></div><span>−10 〜 0%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#fddbc7"></div><span>0 〜 +10%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#fc8d59"></div><span>+10 〜 +20%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#d7301f"></div><span>+20 〜 +30%</span></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#7f0000"></div><span>&gt; +30%</span></div>
+      <div class="lg-sep"></div>
+      <div class="lg-row"><div class="lg-dot" style="background:#e0e0e0"></div><span>データなし</span></div>
+      <div class="lg-sep"></div>
+      <div class="lg-note">都道府県塗り分け: 観測点平均</div>
+    </div>
+  </div>
+
+  <script>
+    // ── 凡例トグル ──
+    function toggleLegend() {
+      const body  = document.getElementById("legend-body");
+      const arrow = document.getElementById("legend-arrow");
+      const open  = body.style.display !== "none";
+      body.style.display  = open ? "none" : "block";
+      arrow.textContent   = open ? "▼" : "▲";
+    }
+    // モバイルでは初期状態を折りたたむ
+    if (window.innerWidth <= 640) {
+      document.getElementById("legend-body").style.display = "none";
+      document.getElementById("legend-arrow").textContent  = "▼";
+    }
+
+    // ── PMTiles プロトコル登録 ──
+    const protocol = new pmtiles.Protocol();
+    maplibregl.addProtocol("pmtiles", protocol.tile);
+
+    // ── 増減率 → 色のステップ式 ──
+    function colorStep(prop) {
+      return [
+        "case",
+        ["==", ["typeof", ["get", prop]], "number"],
+        ["step", ["get", prop],
+          "#0571b0",
+          -10, "#74add1",
+            0, "#fddbc7",
+           10, "#fc8d59",
+           20, "#d7301f",
+           30, "#7f0000"
+        ],
+        "#e0e0e0"
+      ];
+    }
+
+    const map = new maplibregl.Map({
+      container: "map",
+      style: "../pale.json",
+      center: [136.5, 36.0],
+      zoom: window.innerWidth <= 640 ? 4 : 5,
+      hash: true,
+      customAttribution:
+        '出典: <a href="https://www.jartic-open-traffic.org/" target="_blank">' +
+        '国土交通省 JARTIC オープン交通データ</a>（参考値）'
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+
+    map.on("load", () => {
+      // ── 都道府県レイヤー ──
+      map.addSource("gw_pref", { type: "vector", url: "pmtiles://gw_pref_s2.pmtiles" });
+      map.addLayer({
+        id: "pref-fill", type: "fill",
+        source: "gw_pref", "source-layer": "gw_pref",
+        paint: { "fill-color": colorStep("change_rate"), "fill-opacity": 0.75 }
+      });
+      map.addLayer({
+        id: "pref-line", type: "line",
+        source: "gw_pref", "source-layer": "gw_pref",
+        paint: { "line-color": "#999", "line-width": 0.5 }
+      });
+
+      // ── 観測点レイヤー ──
+      map.addSource("gw_stations", { type: "vector", url: "pmtiles://gw_stations_s2.pmtiles" });
+      map.addLayer({
+        id: "stations-circle", type: "circle",
+        source: "gw_stations", "source-layer": "gw_stations",
+        paint: {
+          "circle-color": colorStep("change_rate"),
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 4, 10, 10],
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "rgba(255,255,255,0.9)"
+        }
+      });
+    });
+
+    // ── ポップアップ共通 ──
+    function fmtRate(rate) {
+      if (rate == null || isNaN(rate)) return { str: "不明", cls: "" };
+      const str = (rate >= 0 ? "+" : "") + Number(rate).toFixed(1) + "%";
+      return { str, cls: rate >= 0 ? "up" : "down" };
+    }
+    const fmt = (v) => v != null ? Number(v).toFixed(0) + " 台/時" : "−";
+
+    // ── 観測点タップ/クリック ──
+    map.on("click", "stations-circle", (e) => {
+      const p = e.features[0].properties;
+      const { str, cls } = fmtRate(p.change_rate);
+      new maplibregl.Popup({ maxWidth: "280px" })
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="pu-title">観測点 ${p["観測点コード"] ?? ""}</div>
+          <div class="pu-pref">${p["都道府県名"] ?? ""}</div>
+          <div class="pu-rate ${cls}">${str}</div>
+          <table class="pu-tbl">
+            <tr><td>GW平均交通量</td><td>${fmt(p.gw_hourly_avg)}</td></tr>
+            <tr><td>基準期間平均</td><td>${fmt(p.bl_hourly_avg)}</td></tr>
+            <tr><td>GW有効時間数</td><td>${p.gw_hours ?? "−"} h</td></tr>
+          </table>
+        `)
+        .addTo(map);
+    });
+
+    // ── 都道府県タップ/クリック（観測点がない場所のみ）──
+    map.on("click", "pref-fill", (e) => {
+      if (map.queryRenderedFeatures(e.point, { layers: ["stations-circle"] }).length) return;
+      const p = e.features[0].properties;
+      const { str, cls } = fmtRate(p.change_rate);
+      if (!str || str === "不明") return;
+      new maplibregl.Popup({ maxWidth: "280px" })
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="pu-title">${p["都道府県名"] ?? ""}</div>
+          <div class="pu-pref">都道府県平均</div>
+          <div class="pu-rate ${cls}">${str}</div>
+          <table class="pu-tbl">
+            <tr><td>観測点数</td><td>${p["観測点数"] ?? "−"} 点</td></tr>
+            <tr><td>GW平均交通量</td><td>${fmt(p.gw_hourly_avg)}</td></tr>
+            <tr><td>基準期間平均</td><td>${fmt(p.bl_hourly_avg)}</td></tr>
+          </table>
+        `)
+        .addTo(map);
+    });
+
+    // ── カーソル（PC のみ）──
+    if (!("ontouchstart" in window)) {
+      ["stations-circle", "pref-fill"].forEach(id => {
+        map.on("mouseenter", id, () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", id, () => { map.getCanvas().style.cursor = ""; });
+      });
+    }
+  </script>
+</body>
+</html>
